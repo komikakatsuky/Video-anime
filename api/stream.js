@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Inisialisasi Supabase dengan URL Anda dan Service Role Key dari Environment Variables Vercel
+// Gunakan process.env, BUKAN string kunci aslinya secara langsung
 const supabase = createClient(
   'https://amwmjjquculjfrhsqsjb.supabase.co',
-  'sb_secret_VOO-IudJJLr279iQcROaLw_8nhhjMAV'
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Daftar blog yang diizinkan memutar video
