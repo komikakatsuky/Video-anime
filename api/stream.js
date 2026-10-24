@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // Inisialisasi Supabase dengan URL Anda dan Service Role Key dari Environment Variables Vercel
 const supabase = createClient(
   'https://amwmjjquculjfrhsqsjb.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  'sb_secret_VOO-IudJJLr279iQcROaLw_8nhhjMAV'
 );
 
 // Daftar blog yang diizinkan memutar video
