@@ -5,18 +5,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Daftar domain blog Anda
+// Daftar domain blog yang diizinkan
 const ALLOWED_DOMAINS = ['zoeinime.blogspot.com', 'zoeihua.blogspot.com'];
 
 export default async function handler(req, res) {
-  // Tangkap Referer atau Origin dari request browser
   const referer = req.headers['referer'] || req.headers['origin'] || '';
   
-  // Izinkan jika dari domain blog, atau jika dibuka di iframe / direct media request
   const isAllowed = ALLOWED_DOMAINS.some(domain => referer.includes(domain));
   const isLocal = referer.includes('localhost') || referer.includes('127.0.0.1');
-
-  // Jika Referer kosong (sering terjadi pada tag <video>), izinkan sementara untuk pengujian streaming
   const isNoReferer = !referer;
 
   if (!isAllowed && !isLocal && !isNoReferer) {
@@ -31,17 +27,33 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Buat Signed URL aman (berlaku 2 jam / 7200 detik agar streaming durasi panjang tidak terputus)
+    // Buat Signed URL sementara dari Supabase
     const { data, error } = await supabase.storage
       .from('videos')
       .createSignedUrl(path, 7200);
 
     if (error || !data) {
-      return res.status(404).json({ error: 'File video tidak ditemukan di Supabase', details: error });
+      return res.status(404).json({ error: 'File video tidak ditemukan di Supabase' });
     }
 
-    // Redirect browser langsung ke link streaming Supabase
-    return res.redirect(302, data.signedUrl);
+    // Ambil video dari Supabase secara server-side dan teruskan ke client
+    const upstreamResponse = await fetch(data.signedUrl, {
+      headers: {
+        range: req.headers.range || ''
+      }
+    });
+
+    res.status(upstreamResponse.status);
+    upstreamResponse.headers.forEach((value, key) => {
+      res.setHeader(key, value);
+    });
+
+    // Izinkan akses lintas domain khusus untuk Vercel proxy Anda ke Blogger
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+
+    const arrayBuffer = await upstreamResponse.arrayBuffer();
+    return res.send(Buffer.from(arrayBuffer));
 
   } catch (err) {
     return res.status(500).json({ error: 'Server Error', details: err.message });
