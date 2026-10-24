@@ -1,13 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Gunakan process.env, BUKAN string kunci aslinya secara langsung
+// Inisialisasi Supabase dengan URL Anda dan Service Role Key dari Environment Variables Vercel
 const supabase = createClient(
   'https://amwmjjquculjfrhsqsjb.supabase.co',
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Daftar blog yang diizinkan memutar video
-const ALLOWED_DOMAINS = ['https://zoeinime.blogspot.com', 'https://zoeihua.blogspot.com'];
+const ALLOWED_DOMAINS = ['zoeinime.blogspot.com', 'zoeihua.blogspot.com'];
 
 export default async function handler(req, res) {
   const referer = req.headers['referer'] || '';
