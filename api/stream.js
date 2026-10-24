@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Inisialisasi Supabase dengan URL Anda dan Service Role Key dari Environment Variables Vercel
 const supabase = createClient(
   'https://amwmjjquculjfrhsqsjb.supabase.co',
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -22,23 +21,21 @@ export default async function handler(req, res) {
     });
   }
 
-  const { path } = req.query; // Contoh parameter: /api/stream?path=nama_video.mp4
+  const { path } = req.query;
   if (!path) {
     return res.status(400).json({ error: 'Video path is required' });
   }
 
   try {
-    // Ambil file video dari Private Bucket Supabase
-    const { data, error } = await supabase.storage.from('videos').download(path);
-    
+    // Buat Signed URL sementara yang aman (berlaku 60 detik) dari Private Bucket
+    const { data, error } = await supabase.storage
+      .from('videos')
+      .createSignedUrl(path, 60);
+
     if (error) throw error;
 
-    // Atur header agar browser mengenalinya sebagai video streaming
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Accept-Ranges', 'bytes');
-    
-    const buffer = Buffer.from(await data.arrayBuffer());
-    return res.status(200).send(buffer);
+    // Redirect browser ke link resmi Supabase (mendukung streaming & range request otomatis)
+    return res.redirect(302, data.signedUrl);
 
   } catch (err) {
     return res.status(404).json({ error: 'Video not found or failed to load' });
