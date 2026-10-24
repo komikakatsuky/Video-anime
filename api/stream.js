@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 // Daftar blog yang diizinkan memutar video
-const ALLOWED_DOMAINS = ['zoeinime.blogspot.com', 'zoeihua.blogspot.com'];
+const ALLOWED_DOMAINS = ['https://zoeinime.blogspot.com', 'https://zoeihua.blogspot.com'];
 
 export default async function handler(req, res) {
   const referer = req.headers['referer'] || '';
