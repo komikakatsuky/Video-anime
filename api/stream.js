@@ -37,11 +37,15 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'File video tidak ditemukan di Supabase' });
     }
 
-    // Ambil video dari Supabase secara server-side dengan mendukung Range headers
+    // PERBAIKAN: Hanya masukkan header range jika klien benar-benar mengirimkannya
+    const fetchHeaders = {};
+    if (req.headers.range) {
+      fetchHeaders.range = req.headers.range;
+    }
+
+    // Ambil video dari Supabase secara server-side
     const upstreamResponse = await fetch(data.signedUrl, {
-      headers: {
-        range: req.headers.range || ''
-      }
+      headers: fetchHeaders
     });
 
     res.status(upstreamResponse.status);
@@ -49,11 +53,11 @@ export default async function handler(req, res) {
       res.setHeader(key, value);
     });
 
-    // Izinkan akses lintas domain khusus untuk Vercel proxy Anda ke Blogger
+    // Izinkan akses lintas domain
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
-    // PERBAIKAN: Gunakan Stream Piping agar video mengalir lancar tanpa lag/memory limit
+    // Streaming menggunakan Node.js Readable Stream
     if (upstreamResponse.body) {
       const nodeStream = Readable.fromWeb(upstreamResponse.body);
       return nodeStream.pipe(res);
