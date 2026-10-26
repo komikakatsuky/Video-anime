@@ -6,11 +6,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Daftar domain blog yang diizinkan
+// Daftar domain blog yang diizinkan untuk menghindari hotlinking
 const ALLOWED_DOMAINS = ['zoeinime.blogspot.com', 'zoeihua.blogspot.com', 'fluidplayerstream.blogspot.com', 'localhost'];
 
 export default async function handler(req, res) {
-  // Tangani preflight request CORS
+  // Tangani preflight request CORS untuk Plyr / HTML5 video
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'File video tidak ditemukan di Supabase' });
     }
 
-    // Hanya masukkan header range jika klien benar-benar mengirimkannya
+    // Teruskan header range dari klien (Plyr) agar video bisa melakukan seeking (lompat durasi)
     const fetchHeaders = {};
     if (req.headers.range) {
       fetchHeaders.range = req.headers.range;
@@ -61,13 +61,13 @@ export default async function handler(req, res) {
       res.setHeader(key, value);
     });
 
-    // Izinkan akses lintas domain untuk pemutar video (Plyr/HTML5)
+    // Header CORS dan Content Range agar Plyr / HTML5 Video mendesak fungsi chunking & seeking dengan sempurna
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type');
     res.setHeader('Accept-Ranges', 'bytes');
 
-    // Streaming menggunakan Node.js Readable Stream (Mencegah Out of Memory)[span_1](start_span)[span_1](end_span)
+    // Streaming menggunakan Node.js Readable Stream (Mencegah Out of Memory)
     if (upstreamResponse.body) {
       const nodeStream = Readable.fromWeb(upstreamResponse.body);
       return nodeStream.pipe(res);
