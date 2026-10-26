@@ -6,7 +6,7 @@ const supabase = createClient(
 );
 
 // Daftar domain blog yang diizinkan
-const ALLOWED_DOMAINS = ['zoeinime.blogspot.com', 'zoeihua.blogspot.com', 'fluidplayerstream.blogspot.com'];
+const ALLOWED_DOMAINS = ['zoeinime.blogspot.com', 'zoeihua.blogspot.com', 'fluidplayerstream.blogspot.com', 'localhost'];
 
 export default async function handler(req, res) {
   const referer = req.headers['referer'] || req.headers['origin'] || '';
