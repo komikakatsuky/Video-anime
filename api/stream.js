@@ -10,6 +10,14 @@ const supabase = createClient(
 const ALLOWED_DOMAINS = ['zoeinime.blogspot.com', 'zoeihua.blogspot.com', 'fluidplayerstream.blogspot.com', 'localhost'];
 
 export default async function handler(req, res) {
+  // Tangani preflight request CORS
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type');
+    return res.status(200).end();
+  }
+
   const referer = req.headers['referer'] || req.headers['origin'] || '';
   
   const isAllowed = ALLOWED_DOMAINS.some(domain => referer.includes(domain));
@@ -28,7 +36,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Buat Signed URL sementara dari Supabase
+    // Buat Signed URL sementara dari Supabase (berlaku 2 jam)
     const { data, error } = await supabase.storage
       .from('videos')
       .createSignedUrl(path, 7200);
@@ -37,7 +45,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'File video tidak ditemukan di Supabase' });
     }
 
-    // PERBAIKAN: Hanya masukkan header range jika klien benar-benar mengirimkannya
+    // Hanya masukkan header range jika klien benar-benar mengirimkannya
     const fetchHeaders = {};
     if (req.headers.range) {
       fetchHeaders.range = req.headers.range;
@@ -53,11 +61,13 @@ export default async function handler(req, res) {
       res.setHeader(key, value);
     });
 
-    // Izinkan akses lintas domain
+    // Izinkan akses lintas domain untuk pemutar video (Plyr/HTML5)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type');
+    res.setHeader('Accept-Ranges', 'bytes');
 
-    // Streaming menggunakan Node.js Readable Stream
+    // Streaming menggunakan Node.js Readable Stream (Mencegah Out of Memory)[span_1](start_span)[span_1](end_span)
     if (upstreamResponse.body) {
       const nodeStream = Readable.fromWeb(upstreamResponse.body);
       return nodeStream.pipe(res);
