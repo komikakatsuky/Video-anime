@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { Readable } from 'stream';
 
 const supabase = createClient(
   'https://amwmjjquculjfrhsqsjb.supabase.co',
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'File video tidak ditemukan di Supabase' });
     }
 
-    // Ambil video dari Supabase secara server-side dan teruskan ke client
+    // Ambil video dari Supabase secara server-side dengan mendukung Range headers
     const upstreamResponse = await fetch(data.signedUrl, {
       headers: {
         range: req.headers.range || ''
@@ -52,10 +53,17 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
-    const arrayBuffer = await upstreamResponse.arrayBuffer();
-    return res.send(Buffer.from(arrayBuffer));
+    // PERBAIKAN: Gunakan Stream Piping agar video mengalir lancar tanpa lag/memory limit
+    if (upstreamResponse.body) {
+      const nodeStream = Readable.fromWeb(upstreamResponse.body);
+      return nodeStream.pipe(res);
+    } else {
+      return res.status(500).json({ error: 'Upstream response body is null' });
+    }
 
   } catch (err) {
-    return res.status(500).json({ error: 'Server Error', details: err.message });
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Server Error', details: err.message });
+    }
   }
 }
